@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOXA - Display TV</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body { background: #080808; color: #fff; height: 100vh; overflow: hidden; padding: 20px; }
+        
+        .tv-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            gap: 15px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111;
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid #222;
+        }
+
+        .brand { font-size: 24px; font-weight: bold; color: #ff9800; letter-spacing: 1px; }
+
+        .section-title { font-size: 22px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        
+        .ready-section {
+            flex: 4;
+            background: #06210e;
+            border: 2px solid #1b5e20;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .progress-section {
+            flex: 3;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .ads-section {
+            flex: 3;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #222;
+        }
+
+        .ads-section video { width: 100%; height: 100%; object-fit: cover; }
+
+        .grid { display: flex; flex-wrap: wrap; gap: 12px; align-content: flex-start; }
+        
+        .box {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 36px;
+            font-weight: 800;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .box-ready {
+            background: #4caf50;
+            color: #000;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+            animation: pulse 1s infinite alternate;
+        }
+
+        .box-progress {
+            background: #2a2a2a;
+            color: #ffc107;
+            border: 1px solid #ff9800;
+        }
+
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.04); } }
+    </style>
+</head>
+<body>
+
+<div class="tv-layout">
+    <div class="header">
+        <div class="brand">VOXA SYSTEM</div>
+        <div style="color: #4caf50; font-weight: bold;">● مباشر</div>
+    </div>
+
+    <!-- قسم جاهز للاستلام -->
+    <div class="ready-section">
+        <div class="section-title" style="color: #4caf50;">✅ جاهز للاستلام (READY)</div>
+        <div id="readyList" class="grid"></div>
+    </div>
+
+    <!-- قسم قيد التحضير -->
+    <div class="progress-section">
+        <div class="section-title" style="color: #ff9800;">⏳ قيد التحضير (PREPARING)</div>
+        <div id="progressList" class="grid"></div>
+    </div>
+
+    <!-- المساحة الإعلانية للفيديوهات الطولية -->
+    <div class="ads-section">
+        <video autoplay loop muted playsinline>
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-coffee-pouring-in-a-cup-40338-large.mp4" type="video/mp4">
+        </video>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAE3gGlixaUo1AE3RdNcvxHx0eO2jOSPpg",
+        authDomain: "voxa-b251c.firebaseapp.com",
+        databaseURL: "https://voxa-b251c-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "voxa-b251c",
+        storageBucket: "voxa-b251c.firebasestorage.app",
+        messagingSenderId: "15427311101",
+        appId: "1:15427311101:web:3468485a4d18646ef7b594"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    onValue(ref(db, 'orders/'), (snapshot) => {
+        const data = snapshot.val();
+        const progressDiv = document.getElementById('progressList');
+        const readyDiv = document.getElementById('readyList');
+        progressDiv.innerHTML = ''; 
+        readyDiv.innerHTML = '';
+
+        if(data) {
+            Object.values(data).forEach(order => {
+                const item = document.createElement('div');
+                item.innerText = order.orderNumber;
+                
+                if(order.status === 'ready') {
+                    item.className = 'box box-ready';
+                    readyDiv.appendChild(item);
+                } else {
+                    item.className = 'box box-progress';
+                    progressDiv.appendChild(item);
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
