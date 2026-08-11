@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOXA - نظام شاشة الطلبات</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: #0d0d0d; color: #fff; padding: 15px; }
+        .container { display: grid; grid-template-columns: 1fr 2fr; gap: 15px; max-width: 1200px; margin: auto; }
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+        .card { background: #1a1a1a; padding: 20px; border-radius: 12px; border: 1px solid #333; }
+        h2 { margin-bottom: 15px; font-size: 20px; color: #ff9800; }
+        input, button { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: none; font-size: 16px; }
+        input { background: #2a2a2a; color: #fff; text-align: center; font-size: 18px; }
+        button { background: #ff9800; color: #000; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        .grid { display: flex; flex-wrap: wrap; gap: 10px; }
+        .order-box { padding: 15px 25px; border-radius: 8px; font-size: 24px; font-weight: bold; text-align: center; min-width: 90px; cursor: pointer; user-select: none; }
+        .in-progress { background: #332200; border: 1px solid #ff9800; color: #ffc107; }
+        .ready { background: #003311; border: 1px solid #4CAF50; color: #4CAF50; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- لوحة الموظف / الكاشير -->
+    <div class="card">
+        <h2>لوحة التحكم (المطبخ / الكاشير)</h2>
+        <input type="number" id="orderNum" placeholder="أدخل رقم الطلب">
+        <button onclick="sendOrder()">إرسال (قيد التحضير)</button>
+        <hr style="border-color:#333; margin: 20px 0;">
+        <p style="font-size:13px; color:#aaa; line-height: 1.6;">
+            • انقر على الرقم في <b>قيد التحضير</b> لنقله إلى <b>جاهز للاستلام</b>.<br>
+            • انقر على الرقم الجاهز عند تسليمه للزبون لـ <b>حذفه نهائياً</b>.
+        </p>
+    </div>
+
+    <!-- الشاشة الكبيرة للزبائن -->
+    <div class="card">
+        <h2>قيد التحضير ⏳</h2>
+        <div id="progressList" class="grid" style="margin-bottom: 25px; min-height: 50px;"></div>
+
+        <h2>جاهز للاستلام ✅</h2>
+        <div id="readyList" class="grid" style="min-height: 50px;"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // بيانات مشروع voxa-b251c الخاصة بك
+    const firebaseConfig = {
+        apiKey: "AIzaSyAE3gGlixaUo1AE3RdNcvxHx0eO2jOSPpg",
+        authDomain: "voxa-b251c.firebaseapp.com",
+        databaseURL: "https://voxa-b251c-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "voxa-b251c",
+        storageBucket: "voxa-b251c.firebasestorage.app",
+        messagingSenderId: "15427311101",
+        appId: "1:15427311101:web:3468485a4d18646ef7b594",
+        measurementId: "G-VXD2PEY2ZN"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // إرسال طلب جديد
+    window.sendOrder = function() {
+        const num = document.getElementById('orderNum').value;
+        if(!num) return alert('يرجى كتابة رقم الطلب أولاً');
+        
+        set(ref(db, 'orders/order_' + num), {
+            orderNumber: num,
+            status: 'in_progress',
+            updatedAt: Date.now()
+        });
+        document.getElementById('orderNum').value = '';
+    };
+
+    // الاستماع للتحديثات لحظياً وعرضها
+    onValue(ref(db, 'orders/'), (snapshot) => {
+        const data = snapshot.val();
+        const progressDiv = document.getElementById('progressList');
+        const readyDiv = document.getElementById('readyList');
+        progressDiv.innerHTML = ''; 
+        readyDiv.innerHTML = '';
+
+        if(data) {
+            Object.values(data).forEach(order => {
+                const item = document.createElement('div');
+                item.className = `order-box ${order.status === 'ready' ? 'ready' : 'in-progress'}`;
+                item.innerText = order.orderNumber;
+                
+                item.onclick = () => {
+                    if(order.status === 'in_progress') {
+                        update(ref(db, 'orders/order_' + order.orderNumber), { status: 'ready' });
+                    } else {
+                        remove(ref(db, 'orders/order_' + order.orderNumber));
+                    }
+                };
+
+                if(order.status === 'in_progress') progressDiv.appendChild(item);
+                else readyDiv.appendChild(item);
+            });
+        }
+    });
+</script>
+</body>
+</html>
